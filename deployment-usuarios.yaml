@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kubernetes.io/change-cause: "no revisionHistoryLimit"
+  name: msvc-usuarios
+spec:
+#  revisionHistoryLimit: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: msvc-usuarios
+  template:
+    metadata:
+      labels:
+        app: msvc-usuarios
+    spec:
+      containers:
+      - image: rolandojavier13/usuarios:latest
+        name: usuarios
+        ports:
+        - containerPort: 8001
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: PORT
+            valueFrom:
+              configMapKeyRef:
+                name: msvc-usuarios
+                key: port
+#            value: "8001"
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: msvc-usuarios
+                key: db_host
+#            value: mysql8:3306
+          - name: DB_DATABASE
+            valueFrom:
+              configMapKeyRef:
+                name: msvc-usuarios
+                key: database
+#            value: msvc_usuarios
+          - name: DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: msvc-usuarios
+                key: username
+#            value: root
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: msvc-usuarios
+                key: password
+#            value: "1234"
+          - name: CURSOS_URL
+            valueFrom:
+              configMapKeyRef:
+                name: msvc-usuarios
+                key: cursos_url
+#            value: msvc-cursos:8002
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8001
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8001
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "250Mi"
+            cpu: "200m"
+          limits:
+            memory: "300Mi"
+            cpu: "300m"
